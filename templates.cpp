@@ -73,8 +73,8 @@ int32_t main()
 {
     fastIO
 #ifndef ONLINE_JUDGE
-    freopen("INPT.txt", "r", stdin);
-    freopen("OTPT.txt", "w", stdout);
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
 #endif
     w(t)
     {
