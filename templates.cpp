@@ -147,8 +147,8 @@ ll nCrModPFermat(ll n, ll r, ll p)
     return (fac[n] * modInverse(fac[r], p) % p * modInverse(fac[n - r], p) % p) % p;
 }
 }
-vector<pair<ll, ll>> pf;
-void factorize(ll n) // finds all prime factors of n and their powers in O(logn)
+vector<pair<int, int>> pf;
+void factorize(int n) // finds all prime factors of n and their powers in O(logn)
 {
     pf.clear();
     int ct = 0;
@@ -159,7 +159,7 @@ void factorize(ll n) // finds all prime factors of n and their powers in O(logn)
     }
     if (ct)
         pf.push_back({2, ct});
-    for (ll i = 3; i * i <= n; i += 2)
+    for (int i = 3; i * i <= n; i += 2)
     {
         ct = 0;
         while (n % i == 0)
@@ -257,6 +257,30 @@ void sieve()
             for (j = i + i + i + 1; j < MAXSIEVEHALF; j += i + i + 1)
                 a[j >> 3] &= ~(1 << (j & 7));
 }
+struct DSU {
+    vector<int> parent;
+    vector<int> sz;
+    DSU(int N) {
+        parent.resize(2 * N + 5);
+        sz.resize(2 * N + 5, 1);
+        iota(parent.begin(), parent.end(), 0);
+    }
+    int find_set(int U) {
+        if (U == parent[U])
+            return U;
+        return parent[U] = find_set(parent[U]);
+    }
+    void union_set(int U, int V) {
+        int A = find_set(U);
+        int B = find_set(V);
+        if (A != B) {
+            if (sz[A] < sz[B])
+                swap(A, B);
+            parent[B] = A;
+            sz[A] = sz[A] + sz[B];
+        }
+    }
+};
 vector<int> adj[200005];
 bool visited[200005];
 set<int> atdepth[200005];
@@ -674,4 +698,243 @@ int64_t pow2greaterthanequal(int64_t n) {
     if (res != n)
         res <<= 1;
     return res;
-}*/
+}
+// Tourist's Modular Class
+template <typename T>
+T inverse(T a, T m) {
+    T u = 0, v = 1;
+    while (a != 0) {
+        T t = m / a;
+        m -= t * a; swap(a, m);
+        u -= t * v; swap(u, v);
+    }
+    assert(m == 1);
+    return u;
+}
+template <typename T>
+class Modular {
+public:
+    using Type = typename decay<decltype(T::value)>::type;
+
+    constexpr Modular() : value() {}
+    template <typename U>
+    Modular(const U& x) {
+        value = normalize(x);
+    }
+
+    template <typename U>
+    static Type normalize(const U& x) {
+        Type v;
+        if (-mod() <= x && x < mod()) v = static_cast<Type>(x);
+        else v = static_cast<Type>(x % mod());
+        if (v < 0) v += mod();
+        return v;
+    }
+
+    const Type& operator()() const { return value; }
+    template <typename U>
+    explicit operator U() const { return static_cast<U>(value); }
+    constexpr static Type mod() { return T::value; }
+
+    Modular& operator+=(const Modular& other) { if ((value += other.value) >= mod()) value -= mod(); return *this; }
+    Modular& operator-=(const Modular& other) { if ((value -= other.value) < 0) value += mod(); return *this; }
+    template <typename U> Modular& operator+=(const U& other) { return *this += Modular(other); }
+    template <typename U> Modular& operator-=(const U& other) { return *this -= Modular(other); }
+    Modular& operator++() { return *this += 1; }
+    Modular& operator--() { return *this -= 1; }
+    Modular operator++(int) { Modular result(*this); *this += 1; return result; }
+    Modular operator--(int) { Modular result(*this); *this -= 1; return result; }
+    Modular operator-() const { return Modular(-value); }
+
+    template <typename U = T>
+    typename enable_if<is_same<typename Modular<U>::Type, int>::value, Modular>::type & operator*=(const Modular& rhs) {
+#ifdef _WIN32
+        uint64_t x = static_cast<int64_t>(value) * static_cast<int64_t>(rhs.value);
+        uint32_t xh = static_cast<uint32_t>(x >> 32), xl = static_cast<uint32_t>(x), d, m;
+        asm(
+            "divl %4; \n\t"
+            : "=a" (d), "=d" (m)
+            : "d" (xh), "a" (xl), "r" (mod())
+        );
+        value = m;
+#else
+        value = normalize(static_cast<int64_t>(value) * static_cast<int64_t>(rhs.value));
+#endif
+        return *this;
+    }
+    template <typename U = T>
+    typename enable_if<is_same<typename Modular<U>::Type, long long>::value, Modular>::type & operator*=(const Modular& rhs) {
+        long long q = static_cast<long long>(static_cast<long double>(value) * rhs.value / mod());
+        value = normalize(value * rhs.value - q * mod());
+        return *this;
+    }
+    template <typename U = T>
+    typename enable_if < !is_integral<typename Modular<U>::Type>::value, Modular >::type & operator*=(const Modular& rhs) {
+        value = normalize(value * rhs.value);
+        return *this;
+    }
+
+    Modular& operator/=(const Modular& other) { return *this *= Modular(inverse(other.value, mod())); }
+
+    friend const Type& abs(const Modular& x) { return x.value; }
+
+    template <typename U>
+    friend bool operator==(const Modular<U>& lhs, const Modular<U>& rhs);
+
+    template <typename U>
+    friend bool operator<(const Modular<U>& lhs, const Modular<U>& rhs);
+
+    template <typename V, typename U>
+    friend V& operator>>(V& stream, Modular<U>& number);
+
+private:
+    Type value;
+};
+
+template <typename T> bool operator==(const Modular<T>& lhs, const Modular<T>& rhs) { return lhs.value == rhs.value; }
+template <typename T, typename U> bool operator==(const Modular<T>& lhs, U rhs) { return lhs == Modular<T>(rhs); }
+template <typename T, typename U> bool operator==(U lhs, const Modular<T>& rhs) { return Modular<T>(lhs) == rhs; }
+
+template <typename T> bool operator!=(const Modular<T>& lhs, const Modular<T>& rhs) { return !(lhs == rhs); }
+template <typename T, typename U> bool operator!=(const Modular<T>& lhs, U rhs) { return !(lhs == rhs); }
+template <typename T, typename U> bool operator!=(U lhs, const Modular<T>& rhs) { return !(lhs == rhs); }
+
+template <typename T> bool operator<(const Modular<T>& lhs, const Modular<T>& rhs) { return lhs.value < rhs.value; }
+
+template <typename T> Modular<T> operator+(const Modular<T>& lhs, const Modular<T>& rhs) { return Modular<T>(lhs) += rhs; }
+template <typename T, typename U> Modular<T> operator+(const Modular<T>& lhs, U rhs) { return Modular<T>(lhs) += rhs; }
+template <typename T, typename U> Modular<T> operator+(U lhs, const Modular<T>& rhs) { return Modular<T>(lhs) += rhs; }
+
+template <typename T> Modular<T> operator-(const Modular<T>& lhs, const Modular<T>& rhs) { return Modular<T>(lhs) -= rhs; }
+template <typename T, typename U> Modular<T> operator-(const Modular<T>& lhs, U rhs) { return Modular<T>(lhs) -= rhs; }
+template <typename T, typename U> Modular<T> operator-(U lhs, const Modular<T>& rhs) { return Modular<T>(lhs) -= rhs; }
+
+template <typename T> Modular<T> operator*(const Modular<T>& lhs, const Modular<T>& rhs) { return Modular<T>(lhs) *= rhs; }
+template <typename T, typename U> Modular<T> operator*(const Modular<T>& lhs, U rhs) { return Modular<T>(lhs) *= rhs; }
+template <typename T, typename U> Modular<T> operator*(U lhs, const Modular<T>& rhs) { return Modular<T>(lhs) *= rhs; }
+
+template <typename T> Modular<T> operator/(const Modular<T>& lhs, const Modular<T>& rhs) { return Modular<T>(lhs) /= rhs; }
+template <typename T, typename U> Modular<T> operator/(const Modular<T>& lhs, U rhs) { return Modular<T>(lhs) /= rhs; }
+template <typename T, typename U> Modular<T> operator/(U lhs, const Modular<T>& rhs) { return Modular<T>(lhs) /= rhs; }
+
+template<typename T, typename U>
+Modular<T> power(const Modular<T>& a, const U& b) {
+    assert(b >= 0);
+    Modular<T> x = a, res = 1;
+    U p = b;
+    while (p > 0) {
+        if (p & 1) res *= x;
+        x *= x;
+        p >>= 1;
+    }
+    return res;
+}
+
+template <typename T>
+bool IsZero(const Modular<T>& number) {
+    return number() == 0;
+}
+
+template <typename T>
+string to_string(const Modular<T>& number) {
+    return to_string(number());
+}
+
+// U == std::ostream? but done this way because of fastoutput
+template <typename U, typename T>
+U& operator<<(U& stream, const Modular<T>& number) {
+    return stream << number();
+}
+
+// U == std::istream? but done this way because of fastinput
+template <typename U, typename T>
+U& operator>>(U& stream, Modular<T>& number) {
+    typename common_type<typename Modular<T>::Type, long long>::type x;
+    stream >> x;
+    number.value = Modular<T>::normalize(x);
+    return stream;
+}
+constexpr int md = mod1;
+using Mint = Modular<std::integral_constant<decay<decltype(md)>::type, md>>;*/
+/*
+using ModType = int;
+
+struct VarMod { static ModType value; };
+ModType VarMod::value;
+ModType& md = VarMod::value;
+using Mint = Modular<VarMod>;
+*/
+/*
+vector<pair<int64_t, int>> G[100005];
+void dijkstra(int N, int s, vector<int64_t>& d, vector<int>& p) //dijkstra with path restoration
+{
+    d.assign(N, 1e12);
+    p.assign(N, -1);
+    d[s] = 0;
+    priority_queue<pair<int64_t, int>, vector<pair<int64_t, int>>, greater<pair<int64_t, int>>> q;
+    q.push({0, s});
+    while (!q.empty())
+    {
+        int x = q.top().second;
+        int64_t y = q.top().first;
+        q.pop();
+        for (auto z : G[x])
+        {
+            int to = z.second;
+            int64_t cost = z.first;
+            int64_t nz = d[x] + cost;
+            if (nz < d[to])
+            {
+                d[to] = nz;
+                p[to] = x;
+                q.push({d[to], to});
+            }
+        }
+    }
+}
+vector<int> restorepath(int s, int t, vector<int> const& p)
+{
+    vector<int> path;
+    for (int v = t; v != s; v = p[v])
+    {
+        if (v == -1)
+        {
+            return {};
+        }
+        path.push_back(v);
+    }
+    path.push_back(s);
+    reverse(path.begin(), path.end());
+    return path;
+}
+
+
+vector<int> lps(string& s) {
+    int n = s.length();
+    vector<int> pi(n);
+    for (int i = 1; i < n; i++) {
+        int j = pi[i - 1];
+        while (j > 0 && s[i] == s[j]) {
+            j = pi[j - 1];
+        }
+        if (s[i] == s[j])j++;
+        pi[i] = j;
+    }
+    return pi;
+}
+
+int calculatepqinvmod(int p, int q)
+{
+    int mod = MOD, expo;
+    expo = mod - 2;
+    while (expo) {
+        if (expo & 1) {
+            p = (p * q) % mod;
+        }
+        q = (q * q) % mod;
+        expo >>= 1;
+    }
+    return p;
+}
+
+*/
