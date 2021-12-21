@@ -22,8 +22,6 @@ inline ostream &operator<<(ostream& os, pair<T, S>& a);
 /*************************************************************/
 
 void run_case(int tt) {
-    int n, m, k; cin >> n >> m >> k;
-    cout << (k < max(n, m) ? -1 : k - ((n - k) & 1) - ((m - k) & 1)) << nline;
     return;
 }
 
